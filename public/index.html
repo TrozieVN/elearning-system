@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống E-Learning & Giảng Dạy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
+        <h1 class="text-xl font-bold">📚 Hệ Thống Học Tập Trực Tuyến</h1>
+        <div class="space-x-2">
+            <button onclick="switchView('student')" class="bg-blue-500 hover:bg-blue-700 px-4 py-2 rounded text-sm font-semibold">Giao Diện Học Sinh</button>
+            <button onclick="checkTeacherLogin()" class="bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded text-sm font-semibold">Giáo Viên (Quản Trị)</button>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto p-6 space-y-6">
+
+        <!-- KHU VỰC HỌC SINH -->
+        <div id="studentView" class="bg-white rounded-xl shadow p-6">
+            <h2 class="text-2xl font-bold text-blue-600 mb-4">Làm Bài Tập (Trắc nghiệm & Tự luận)</h2>
+            <div id="studentLoginBox" class="mb-6 flex gap-3 items-center">
+                <input type="text" id="studentNameInput" placeholder="Nhập tên của bạn để bắt đầu làm bài..." class="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <button onclick="startQuiz()" class="bg-green-600 text-white px-5 py-2 rounded font-semibold hover:bg-green-700">Vào Làm Bài</button>
+            </div>
+
+            <div id="quizContainer" class="hidden">
+                <div class="mb-4 p-3 bg-blue-50 rounded text-blue-800 font-medium">Học sinh: <span id="displayName" class="font-bold"></span></div>
+                <div id="questionList" class="space-y-6"></div>
+                <button onclick="submitQuiz()" class="mt-6 bg-blue-600 text-white px-6 py-2 rounded font-semibold hover:bg-blue-700">Nộp Bài</button>
+            </div>
+        </div>
+
+        <!-- KHU VỰC GIÁO VIÊN -->
+        <div id="teacherView" class="hidden space-y-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-2xl font-bold text-amber-600 mb-4">Giao Diện Quản Trị Giáo Viên</h2>
+                
+                <!-- Upload PDF -->
+                <div class="mb-6 p-4 border border-amber-200 bg-amber-50 rounded-lg">
+                    <h3 class="font-semibold text-amber-800 mb-2">Tải lên Đề thi PDF (Hoặc thêm/chỉnh sửa trực tiếp câu hỏi Trắc nghiệm & Tự luận bên dưới)</h3>
+                    <div class="flex gap-3 items-center">
+                        <input type="file" id="pdfFile" accept=".pdf" class="border p-2 bg-white rounded flex-1">
+                        <button type="button" onclick="uploadPDF()" class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 font-semibold">Tải Lên PDF</button>
+                    </div>
+                </div>
+
+                <!-- QUẢN LÝ & CHỈNH SỬA CÂU HỎI TRỰC TIẾP -->
+                <div class="mb-8 p-4 border rounded-lg bg-gray-50">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-gray-700 text-lg">Danh Sách Câu Hỏi (Hỗ trợ Trắc nghiệm & Tự luận)</h3>
+                        <div class="space-x-2">
+                            <button onclick="addQuestion('quiz')" class="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700">+ Thêm Trắc Nghiệm</button>
+                            <button onclick="addQuestion('essay')" class="bg-purple-600 text-white px-3 py-1.5 rounded text-sm hover:bg-purple-700">+ Thêm Tự Luận</button>
+                            <button onclick="saveQuestions()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700">Lưu Thay Đổi</button>
+                        </div>
+                    </div>
+                    <div id="teacherQuestionEditor" class="space-y-4"></div>
+                </div>
+
+                <!-- Danh sách bài làm của học sinh -->
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-3">Kết quả bài làm của học sinh</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse border border-gray-300 text-left text-sm">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border border-gray-300 p-2">Thời gian</th>
+                                    <th class="border border-gray-300 p-2">Học Sinh</th>
+                                    <th class="border border-gray-300 p-2">Điểm Số / Chi Tiết</th>
+                                </tr>
+                            </thead>
+                            <tbody id="submissionTableBody">
+                                <tr><td colspan="3" class="p-3 text-center text-gray-500">Chưa có học sinh nộp bài.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BẢNG TRẮNG GIẢNG DẠY -->
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xl font-bold text-blue-600">Bảng Trắng Giảng Dạy Trực Tuyến</h3>
+                    <div class="space-x-2">
+                        <button type="button" onclick="setTool('pen')" id="btnPen" class="bg-blue-600 text-white px-3 py-1 rounded text-sm font-semibold shadow">✏️ Bút Vẽ</button>
+                        <button type="button" onclick="setTool('eraser')" id="btnEraser" class="bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm font-semibold">🧹 Tẩy</button>
+                        <button type="button" onclick="setTool('text')" id="btnText" class="bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm font-semibold">🔤 Gõ Chữ</button>
+                        <button type="button" onclick="clearBoard()" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Xóa Sạch Bảng</button>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500 mb-3">Giáo viên chọn Bút vẽ, Tẩy hoặc Gõ Chữ rồi click lên bảng để nhập nội dung:</p>
+                <canvas id="whiteboard" width="900" height="400" class="border border-gray-400 bg-white rounded cursor-crosshair w-full shadow-inner"></canvas>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let currentStudent = "";
+        let questions = [];
+
+        async function loadTeacherQuestions() {
+            try {
+                const res = await fetch('/api/questions');
+                questions = await res.json();
+                renderTeacherEditor();
+            } catch (err) {
+                console.error("Lỗi nạp câu hỏi:", err);
+            }
+        }
+
+        function switchView(role) {
+            if (role === 'student') {
+                document.getElementById('studentView').classList.remove('hidden');
+                document.getElementById('teacherView').classList.add('hidden');
+            } else {
+                document.getElementById('studentView').classList.add('hidden');
+                document.getElementById('teacherView').classList.remove('hidden');
+                loadTeacherQuestions();
+                loadSubmissions();
+            }
+        }
+
+        function checkTeacherLogin() {
+            let password = prompt("Nhập mật khẩu giáo viên:");
+            if (password === "admin123") {
+                switchView('teacher');
+            } else if (password !== null) {
+                alert("Mật khẩu không đúng!");
+            }
+        }
+
+        function renderTeacherEditor() {
+            const container = document.getElementById('teacherQuestionEditor');
+            container.innerHTML = "";
+            if (!questions || questions.length === 0) {
+                container.innerHTML = `<p class="text-gray-500 text-sm">Chưa có câu hỏi nào. Bấm thêm Trắc nghiệm hoặc Tự luận để tạo mới.</p>`;
+                return;
+            }
+            questions.forEach((q, idx) => {
+                let typeLabel = q.type === 'essay' ? '<span class="text-purple-600 font-bold">[Tự Luận]</span>' : '<span class="text-blue-600 font-bold">[Trắc Nghiệm]</span>';
+                
+                let answerSection = '';
+                if (q.type === 'essay') {
+                    answerSection = `
+                        <div class="mt-2">
+                            <span class="text-xs font-semibold text-gray-600">Gợi ý đáp án / Từ khóa chấm điểm:</span>
+                            <input type="text" value="${q.correctAnswer || ''}" onchange="updateAns(${idx}, this.value)" placeholder="Nhập ý chính hoặc đáp án gợi ý..." class="w-full border p-1 rounded text-sm bg-purple-50">
+                        </div>
+                    `;
+                } else {
+                    answerSection = `
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <input type="text" value="${q.options && q.options[0] ? q.options[0] : ''}" onchange="updateOpt(${idx}, 0, this.value)" placeholder="Đáp án A" class="border p-1.5 rounded text-sm">
+                            <input type="text" value="${q.options && q.options[1] ? q.options[1] : ''}" onchange="updateOpt(${idx}, 1, this.value)" placeholder="Đáp án B" class="border p-1.5 rounded text-sm">
+                            <input type="text" value="${q.options && q.options[2] ? q.options[2] : ''}" onchange="updateOpt(${idx}, 2, this.value)" placeholder="Đáp án C" class="border p-1.5 rounded text-sm">
+                            <input type="text" value="${q.options && q.options[3] ? q.options[3] : ''}" onchange="updateOpt(${idx}, 3, this.value)" placeholder="Đáp án D" class="border p-1.5 rounded text-sm">
+                        </div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="text-xs font-semibold text-gray-600">Đáp án đúng chính xác:</span>
+                            <input type="text" value="${q.correctAnswer || ''}" onchange="updateAns(${idx}, this.value)" placeholder="Nhập đáp án đúng" class="flex-1 border p-1 rounded text-sm bg-green-50">
+                        </div>
+                    `;
+                }
+
+                container.innerHTML += `
+                    <div class="p-4 bg-white border rounded shadow-sm space-y-2 relative">
+                        <div class="flex justify-between items-center">
+                            <div><span class="font-bold text-gray-700">Câu ${idx + 1}</span> ${typeLabel}</div>
+                            <button onclick="deleteQuestion(${idx})" class="text-red-500 text-sm hover:underline font-semibold">Xóa câu này</button>
+                        </div>
+                        <input type="text" value="${q.question || ''}" onchange="updateQText(${idx}, this.value)" placeholder="Nhập nội dung câu hỏi..." class="w-full border p-2 rounded text-sm">
+                        ${answerSection}
+                    </div>
+                `;
+            });
+        }
+
+        function updateQText(idx, val) { questions[idx].question = val; }
+        function updateOpt(idx, optIdx, val) { 
+            if (!questions[idx].options) questions[idx].options = ["", "", "", ""];
+            questions[idx].options[optIdx] = val; 
+        }
+        function updateAns(idx, val) { questions[idx].correctAnswer = val; }
+
+        function addQuestion(type) {
+            questions.push({
+                id: questions.length + 1,
+                type: type, // 'quiz' hoặc 'essay'
+                question: "",
+                options: type === 'quiz' ? ["", "", "", ""] : [],
+                correctAnswer: ""
+            });
+            renderTeacherEditor();
+        }
+
+        function deleteQuestion(idx) {
+            questions.splice(idx, 1);
+            renderTeacherEditor();
+        }
+
+        async function saveQuestions() {
+            const res = await fetch('/api/questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ questions })
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
+
+        async function startQuiz() {
+            const nameInput = document.getElementById('studentNameInput');
+            currentStudent = nameInput.value.trim();
+            if (!currentStudent) {
+                alert("Vui lòng nhập tên của bạn trước khi làm bài!");
+                return;
+            }
+            document.getElementById('studentLoginBox').classList.add('hidden');
+            document.getElementById('quizContainer').classList.remove('hidden');
+            document.getElementById('displayName').innerText = currentStudent;
+
+            const res = await fetch('/api/questions');
+            questions = await res.json();
+            renderQuiz();
+        }
+
+        function renderQuiz() {
+            const container = document.getElementById('questionList');
+            container.innerHTML = "";
+            questions.forEach((q, index) => {
+                let inputHtml = "";
+                if (q.type === 'essay') {
+                    inputHtml = `
+                        <textarea name="essay_${index}" placeholder="Nhập câu trả lời tự luận của bạn tại đây..." rows="3" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"></textarea>
+                    `;
+                } else {
+                    inputHtml = (q.options || []).map((opt) => `
+                        <label class="block p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                            <input type="radio" name="question_${index}" value="${opt}" class="mr-2"> ${opt}
+                        </label>
+                    `).join('');
+                }
+
+                let badge = q.type === 'essay' ? '<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-semibold ml-2">Tự Luận</span>' : '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold ml-2">Trắc Nghiệm</span>';
+
+                container.innerHTML += `
+                    <div class="p-4 border rounded-lg bg-gray-50 space-y-2">
+                        <p class="font-semibold">Câu ${index + 1}: ${q.question} ${badge}</p>
+                        <div class="space-y-2">${inputHtml}</div>
+                    </div>
+                `;
+            });
+        }
+
+       async function submitQuiz() {
+            let scoreCount = 0;
+            let quizTotal = 0;
+            let details = [];
+
+            questions.forEach((q, index) => {
+                if (q.type === 'essay') {
+                    const essayBox = document.querySelector(`textarea[name="essay_${index}"]`);
+                    const answer = essayBox ? essayBox.value.trim() : "Chưa trả lời";
+                    details.push({ 
+                        question: q.question, 
+                        type: 'essay', 
+                        answer, 
+                        correct: q.correctAnswer || "Không có đáp án mẫu" 
+                    });
+                } else {
+                    quizTotal++;
+                    const selected = document.querySelector(`input[name="question_${index}"]:checked`);
+                    const answer = selected ? selected.value.trim() : "";
+                    const correct = (q.correctAnswer || "").trim();
+
+                    // So sánh linh hoạt: Khớp tuyệt đối HOẶC khớp ký tự đầu (A, B, C, D) HOẶC chứa từ khóa
+                    const isCorrect = (answer === correct) || 
+                                      (answer.charAt(0).toUpperCase() === correct.charAt(0).toUpperCase() && correct.length <= 3) ||
+                                      (answer.toLowerCase().includes(correct.toLowerCase()) && correct.length > 0);
+
+                    if (isCorrect && answer !== "") {
+                        scoreCount++;
+                    }
+                    details.push({ 
+                        question: q.question, 
+                        type: 'quiz', 
+                        answer: answer || "Chưa chọn", 
+                        correct 
+                    });
+                }
+            });
+
+            let scoreString = quizTotal > 0 ? `${scoreCount}/${quizTotal} câu đúng` : `Đã nộp bài tự luận`;
+
+            const res = await fetch('/api/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    studentName: currentStudent, 
+                    score: scoreString, 
+                    details 
+                })
+            });
+
+            const data = await res.json();
+            alert(data.message + ` Bạn đạt ${scoreCount}/${quizTotal} câu trắc nghiệm đúng.`);
+            
+            // Tải lại giao diện học sinh hoặc reset
+            document.getElementById('quizContainer').classList.add('hidden');
+            document.getElementById('studentLoginBox').classList.remove('hidden');
+            document.getElementById('studentNameInput').value = "";
+        }
+
+        async function uploadPDF() {
+            const fileInput = document.getElementById('pdfFile');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("Vui lòng chọn file PDF!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('pdfFile', fileInput.files[0]);
+
+            try {
+                const res = await fetch('/api/upload-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+                alert(data.message);
+                loadTeacherQuestions();
+            } catch (err) {
+                alert("Lỗi khi kết nối tải file PDF!");
+            }
+        }
+
+       async function loadSubmissions() {
+            const res = await fetch('/api/submissions');
+            const data = await res.json();
+            const tbody = document.getElementById('submissionTableBody');
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-gray-500">Chưa có học sinh nộp bài.</td></tr>`;
+                return;
+            }
+
+            data.forEach((sub, index) => {
+                tbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="border border-gray-300 p-2">${sub.time}</td>
+                        <td class="border border-gray-300 p-2 font-medium">${sub.studentName}</td>
+                        <td class="border border-gray-300 p-2 text-blue-600 font-bold">${sub.score}</td>
+                        <td class="border border-gray-300 p-2 text-center">
+                            <button onclick="viewStudentDetail(${index})" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">Xem Bài Làm</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Biến lưu trữ tạm danh sách bài nộp để xem chi tiết
+        let cachedSubmissions = [];
+        async function loadSubmissions() {
+            const res = await fetch('/api/submissions');
+            cachedSubmissions = await res.json();
+            const tbody = document.getElementById('submissionTableBody');
+            tbody.innerHTML = "";
+
+            if (!cachedSubmissions || cachedSubmissions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-gray-500">Chưa có học sinh nộp bài.</td></tr>`;
+                return;
+            }
+
+            cachedSubmissions.forEach((sub, index) => {
+                tbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="border border-gray-300 p-2">${sub.time}</td>
+                        <td class="border border-gray-300 p-2 font-medium">${sub.studentName}</td>
+                        <td class="border border-gray-300 p-2 text-blue-600 font-bold">${sub.score}</td>
+                        <td class="border border-gray-300 p-2 text-center">
+                            <button onclick="viewStudentDetail(${index})" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">Xem Bài Làm</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function viewStudentDetail(index) {
+            const sub = cachedSubmissions[index];
+            if (!sub || !sub.details) return;
+
+            let detailHtml = `<div style="text-align: left; max-height: 400px; overflow-y: auto;">`;
+            detailHtml += `<p><strong>Học sinh:</strong> ${sub.studentName}</p>`;
+            detailHtml += `<p><strong>Thời gian nộp:</strong> ${sub.time}</p>`;
+            detailHtml += `<p><strong>Kết quả:</strong> ${sub.score}</p><hr style="margin: 10px 0;">`;
+
+            sub.details.forEach((item, i) => {
+                let badge = item.type === 'essay' ? '[Tự Luận]' : '[Trắc Nghiệm]';
+                detailHtml += `<div style="margin-bottom: 12px; background: #f9f9f9; padding: 8px; border-radius: 5px;">`;
+                detailHtml += `<p><strong>Câu ${i + 1} ${badge}:</strong> ${item.question}</p>`;
+                detailHtml += `<p style="color: ${item.type === 'quiz' && item.answer === item.correct ? 'green' : 'blue'};"><strong>Học sinh chọn/trả lời:</strong> ${item.answer}</p>`;
+                if (item.type === 'quiz') {
+                    detailHtml += `<p style="color: #666; font-size: 12px;">Đáp án đúng: ${item.correct}</p>`;
+                }
+                detailHtml += `</div>`;
+            });
+            detailHtml += `</div>`;
+
+            // Hiển thị dạng popup đơn giản bằng cửa sổ thông báo hoặc modal
+            const win = window.open("", "Chi tiết bài làm", "width=600,height=500");
+            win.document.write(`<html><head><title>Bài làm của ${sub.studentName}</title></head><body style="font-family: Arial; padding: 20px;"><h2>Chi Tiết Bài Làm</h2>${detailHtml}</body></html>`);
+        }
+
+       // BẢNG TRẮNG (WHITEBOARD & FLOATING TEXT INPUT)
+        const canvas = document.getElementById('whiteboard');
+        const ctx = canvas.getContext('2d');
+        let painting = false;
+        let currentTool = 'pen'; // 'pen', 'eraser', 'text'
+        let activeInput = null; // Biến lưu ô nhập text nổi trên bảng
+
+        function setTool(tool) {
+            currentTool = tool;
+            // Nếu đổi công cụ mà đang có ô nhập text dang dở thì xóa/lưu luôn
+            removeActiveInput();
+
+            document.getElementById('btnPen').className = tool === 'pen' ? 'bg-blue-600 text-white px-3 py-1 rounded text-sm font-semibold shadow' : 'bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm font-semibold';
+            document.getElementById('btnEraser').className = tool === 'eraser' ? 'bg-blue-600 text-white px-3 py-1 rounded text-sm font-semibold shadow' : 'bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm font-semibold';
+            document.getElementById('btnText').className = tool === 'text' ? 'bg-blue-600 text-white px-3 py-1 rounded text-sm font-semibold shadow' : 'bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm font-semibold';
+        }
+
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY,
+                clientX: e.clientX,
+                clientY: e.clientY
+            };
+        }
+
+        function handleCanvasMouseDown(e) {
+            const pos = getCanvasCoords(e);
+
+            if (currentTool === 'text') {
+                // Nếu đã có một ô input đang mở, bấm sang chỗ khác sẽ tự động ghi chữ cũ lên canvas trước
+                removeActiveInput();
+
+                // Tạo một ô input nổi (floating input) ngay tại vị trí chuột click
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Gõ chữ ở đây...';
+                input.style.position = 'fixed';
+                input.style.left = `${e.clientX}px`;
+                input.style.top = `${e.clientY}px`;
+                input.style.zIndex = 1000;
+                input.style.font = '20px Arial';
+                input.style.color = '#1e3a8a';
+                input.style.background = 'white';
+                input.style.border = '2px solid #3b82f6';
+                input.style.padding = '2px 6px';
+                input.style.borderRadius = '4px';
+                input.style.outline = 'none';
+                input.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+
+                document.body.appendChild(input);
+                input.focus();
+                activeInput = { element: input, x: pos.x, y: pos.y + 18 }; // +18 để căn dòng chữ đẹp mắt
+
+                // Khi bấm phím Enter hoặc blur ra ngoài thì vẽ chữ lên canvas
+                input.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        finalizeText();
+                    }
+                });
+
+                input.addEventListener('blur', function() {
+                    finalizeText();
+                });
+
+                return;
+            }
+
+            painting = true;
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function finalizeText() {
+            if (!activeInput) return;
+            const textValue = activeInput.element.value.trim();
+            if (textValue !== "") {
+                ctx.font = "20px Arial";
+                ctx.fillStyle = "#1e3a8a";
+                ctx.fillText(textValue, activeInput.x, activeInput.y);
+            }
+            removeActiveInput();
+        }
+
+        function removeActiveInput() {
+            if (activeInput) {
+                activeInput.element.remove();
+                activeInput = null;
+            }
+        }
+
+        function handleCanvasMouseMove(e) {
+            if (!painting || currentTool === 'text') return;
+            const pos = getCanvasCoords(e);
+
+            if (currentTool === 'eraser') {
+                ctx.lineWidth = 30;
+                ctx.globalCompositeOperation = 'destination-out';
+            } else {
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#1e3a8a';
+                ctx.globalCompositeOperation = 'source-over';
+            }
+
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        function handleCanvasMouseUp() {
+            painting = false;
+            ctx.beginPath();
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
+        canvas.addEventListener('mousedown', handleCanvasMouseDown);
+        canvas.addEventListener('mousemove', handleCanvasMouseMove);
+        canvas.addEventListener('mouseup', handleCanvasMouseUp);
+        canvas.addEventListener('mouseleave', handleCanvasMouseUp);
+
+        function clearBoard() {
+            removeActiveInput();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleCanvasMouseDown(e) {
+            const pos = getCanvasCoords(e);
+            if (currentTool === 'text') {
+                let userText = prompt("Nhập nội dung chữ muốn ghi lên bảng:");
+                if (userText && userText.trim() !== "") {
+                    ctx.font = "20px Arial";
+                    ctx.fillStyle = "#1e3a8a";
+                    ctx.fillText(userText.trim(), pos.x, pos.y);
+                }
+                return;
+            }
+            painting = true;
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function handleCanvasMouseMove(e) {
+            if (!painting || currentTool === 'text') return;
+            const pos = getCanvasCoords(e);
+            if (currentTool === 'eraser') {
+                ctx.lineWidth = 30;
+                ctx.globalCompositeOperation = 'destination-out';
+            } else {
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#1e3a8a';
+                ctx.globalCompositeOperation = 'source-over';
+            }
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        function handleCanvasMouseUp() {
+            painting = false;
+            ctx.beginPath();
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
+        canvas.addEventListener('mousedown', handleCanvasMouseDown);
+        canvas.addEventListener('mousemove', handleCanvasMouseMove);
+        canvas.addEventListener('mouseup', handleCanvasMouseUp);
+        canvas.addEventListener('mouseleave', handleCanvasMouseUp);
+
+        function clearBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    </script>
+</body>
+</html>
+<thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border border-gray-300 p-2">Thời gian</th>
+                                    <th class="border border-gray-300 p-2">Học Sinh</th>
+                                    <th class="border border-gray-300 p-2">Điểm Số</th>
+                                    <th class="border border-gray-300 p-2 text-center">Thao Tác</th>
+                                </tr>
+                            </thead>

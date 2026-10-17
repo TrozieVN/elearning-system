@@ -1,0 +1,1 @@
+                let optionsHtml = q.options.map((opt, i) =
